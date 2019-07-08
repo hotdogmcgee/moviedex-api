@@ -8,15 +8,20 @@ const MOVIEDEX = require('./moviedex.json')
 
 const app = express()
 
-app.use(morgan('dev'));
+const morganSetting = process.env.NODE.ENV === 'production' ? 'tiny' : 'common'
+app.use(morganSetting);
 app.use(helmet())
 app.use(cors())
 
 app.use(function validateBearerToken(req, res, next) {
     const apiToken = process.env.API_TOKEN;
+    console.log('apiToken: ', apiToken);
     const authToken = req.get('Authorization')
+    console.log('authToken: ', authToken);
 
-    if (!authToken || authToken.split(' ')[1] !== apiToken) {
+    //if (!authToken || authToken.split(' ')[1] !== apiToken) {
+        //I had to change above for some reason and I don't know why, it was working before
+    if (!authToken || authToken !== apiToken) {
         return res.status(401).json({error: 'Unauthorized request'})
     }
     next()
@@ -46,7 +51,17 @@ function handleGetMovies(req, res) {
 
 app.get('/movies', handleGetMovies)
 
-const PORT = 8000
+app.use((error, req, res, next) => {
+    let response
+    if (process.env.NODE_ENV === 'production') {
+      response = { error: { message: 'server error' }}
+    } else {
+      response = { error }
+    }
+    res.status(500).json(response)
+  })
+
+const PORT = process.env.PORT || 8001
 app.listen(PORT, () => {
     console.log(`Server listening at http://localhost:${PORT}`)
 })
